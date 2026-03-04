@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>STK 獨家 AI | 手機直排專屬選房系統</title>
+    <!-- 引入外部資源 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f1f5f9;
+            /* 使用 STK 專屬美鈔背景圖 */
+            background-image: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('image_31c11c.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            -webkit-tap-highlight-color: transparent;
+            color: #1e293b;
+            overflow-x: hidden;
+        }
+
+        .multiplier-bounce {
+            animation: bounce 1.8s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-8%); }
+            50% { transform: translateY(0); }
+        }
+
+        /* STK 白金磨砂玻璃效果 */
+        .glass-row {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 高機率清單項目的金色發光效果 */
+        .glow-row {
+            background: rgba(254, 249, 196, 0.85);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(234, 179, 8, 0.4);
+            box-shadow: 0 10px 25px rgba(234, 179, 8, 0.2);
+            position: relative;
+        }
+
+        .glow-row::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: #EAB308;
+            border-radius: 12px 0 0 12px;
+        }
+
+        .btn-pill {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        #loader {
+            position: fixed;
+            inset: 0;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        /* 隱藏捲軸 */
+        ::-webkit-scrollbar {
+            width: 0px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loader">
+        <div class="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+        <div class="text-slate-600 font-bold tracking-widest text-sm">STK 系統初始化中...</div>
+    </div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- STK 盾牌 Logo (深色質感) ---
+        const STKLogo = () => (
+            <svg viewBox="0 0 100 120" className="w-12 h-12" style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }}>
+                <path d="M50 5 L90 25 L90 60 C90 85 70 105 50 115 C30 105 10 85 10 60 L10 25 Z" fill="none" stroke="#1e293b" strokeWidth="2.5" />
+                <path d="M50 12 L85 30 L85 60 C85 82 68 100 50 110 C32 100 15 82 15 60 L15 30 Z" fill="white" stroke="#1e293b" strokeWidth="1" />
+                <text x="50" y="55" fontSize="24" fontWeight="900" fill="#1e293b" textAnchor="middle" style={{ fontFamily: 'serif' }}>STK</text>
+                <text x="50" y="75" fontSize="9" fontWeight="bold" fill="#1e293b" textAnchor="middle" letterSpacing="1">SYSTEM</text>
+            </svg>
+        );
+
+        // --- 核心百倍球圖案 ---
+        const MultiplierBall = ({ value = 100 }) => (
+            <div className="relative w-8 h-8 flex items-center justify-center multiplier-bounce ml-3">
+                <div className="absolute inset-0 bg-red-600 rounded-full blur-md opacity-40 animate-pulse"></div>
+                <svg viewBox="0 0 100 100" className="w-full h-full relative z-10 overflow-visible">
+                    <defs>
+                        <radialGradient id={`ballGrad-${value}`} cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stopColor="#ff4d4d" />
+                            <stop offset="80%" stopColor="#990000" />
+                            <stop offset="100%" stopColor="#440000" />
+                        </radialGradient>
+                    </defs>
+                    {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => (
+                        <path key={deg} d="M50 2 L56 20 L44 20 Z" fill="#facc15" transform={`rotate(${deg}, 50, 50)`} />
+                    ))}
+                    <circle cx="50" cy="50" r="40" fill={`url(#ballGrad-${value})`} stroke="#facc15" strokeWidth="3" />
+                    <text x="50" y="65" fontSize="34" fontWeight="950" fill="#fef08a" textAnchor="middle" style={{ fontFamily: 'Arial Black, sans-serif' }}>
+                        {value}x
+                    </text>
+                </svg>
+            </div>
+        );
+
+        const App = () => {
+            const [version, setVersion] = useState('MODE II');
+            const [rooms, setRooms] = useState([]);
+            const [isRefreshing, setIsRefreshing] = useState(false);
+
+            const generateData = () => {
+                setIsRefreshing(true);
+                setTimeout(() => {
+                    // 保持 6 個房間的設定
+                    const newRooms = Array.from({ length: 6 }, (_, i) => {
+                        const prob = Math.floor(Math.random() * 45) + 50;
+                        const isHigh = prob >= 88;
+                        return {
+                            id: i,
+                            roomNo: Math.floor(Math.random() * 2500) + 1, // 房號 1-2500
+                            probability: prob,
+                            isHigh: isHigh,
+                            multiplier: isHigh ? (Math.random() > 0.5 ? 500 : 100) : null,
+                        };
+                    });
+                    
+                    // 確保至少有一間高爆分房間顯示
+                    const highIdx = Math.floor(Math.random() * 6);
+                    newRooms[highIdx].probability = 95;
+                    newRooms[highIdx].isHigh = true;
+                    newRooms[highIdx].multiplier = 500;
+
+                    // 核心排序邏輯：將機率從高到低排序，集中高爆分房在上方
+                    const sortedRooms = [...newRooms].sort((a, b) => b.probability - a.probability);
+                    
+                    setRooms(sortedRooms);
+                    setIsRefreshing(false);
+                    if (window.navigator.vibrate) window.navigator.vibrate(50);
+                }, 600);
+            };
+
+            useEffect(() => {
+                generateData();
+                const loader = document.getElementById('loader');
+                if (loader) loader.style.display = 'none';
+            }, []);
+
+            const toggleVersion = () => {
+                setVersion(prev => prev === 'MODE II' ? 'MODE I' : 'MODE II');
+                generateData();
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col items-center px-5 pt-5 pb-24">
+                    {/* Header: 狀態標誌與 Logo */}
+                    <header className="w-full flex justify-between items-start mb-8">
+                        <div className="flex flex-col items-start pt-2">
+                            <div className="flex items-center gap-2.5 mb-1.5">
+                                <span className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
+                                <span className="text-[11px] font-black text-slate-700 tracking-[0.25em] uppercase">Online</span>
+                            </div>
+                            <div className="text-[15px] font-bold text-slate-500 tracking-tight">AI 數據實時監控</div>
+                        </div>
+                        <STKLogo />
+                    </header>
+
+                    {/* 主標題 */}
+                    <div className="text-center mb-10">
+                        <h1 className="text-2xl font-black tracking-widest text-slate-800 leading-tight">
+                            STK 策略專屬 <span className="mx-2 text-yellow-600">|</span> <br className="xs:block md:hidden" />
+                            爆分選房系統
+                        </h1>
+                    </div>
+
+                    {/* 模式按鈕 */}
+                    <button 
+                        onClick={toggleVersion}
+                        className="btn-pill w-44 h-12 rounded-full text-white font-black tracking-[0.2em] mb-12 transition-transform active:scale-90"
+                    >
+                        {version}
+                    </button>
+
+                    {/* 直排清單項目 - 縮減至 6 個並排序 */}
+                    <div className={`w-full max-w-md space-y-4 transition-all duration-300 ${isRefreshing ? 'opacity-20 blur-md scale-95' : 'opacity-100 scale-100'}`}>
+                        {rooms.map((room) => (
+                            <div 
+                                key={room.id}
+                                className={`
+                                    flex items-center justify-between px-6 py-5 rounded-2xl transition-all duration-300
+                                    ${room.isHigh ? 'glow-row' : 'glass-row'}
+                                `}
+                            >
+                                <div className="flex flex-col">
+                                    <span className={`text-[11px] font-bold tracking-widest uppercase mb-1 ${room.isHigh ? 'text-yellow-700' : 'text-slate-400'}`}>
+                                        Room No.
+                                    </span>
+                                    <span className={`text-xl font-black font-mono ${room.isHigh ? 'text-slate-900' : 'text-slate-600'}`}>
+                                        第 {room.roomNo} 房
+                                    </span>
+                                </div>
+                                
+                                <div className="flex items-center">
+                                    <div className="text-right">
+                                        <div className={`text-[10px] font-bold uppercase ${room.isHigh ? 'text-yellow-700' : 'text-slate-400'}`}>機率</div>
+                                        <span className={`text-2xl font-black font-mono leading-none ${room.isHigh ? 'text-black drop-shadow-sm' : 'text-slate-500'}`}>
+                                            {room.probability}%
+                                        </span>
+                                    </div>
+                                    {room.isHigh && <MultiplierBall value={room.multiplier} />}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Footer */}
+                    <footer className="mt-20 w-full flex flex-col items-center opacity-40 text-center pb-8">
+                        <div className="text-[10px] font-bold tracking-[0.4em] uppercase mb-1.5 text-slate-800">STK Advanced Quantitative</div>
+                        <div className="text-[9px] tracking-widest uppercase font-mono text-slate-500">Sync: {new Date().toLocaleTimeString()}</div>
+                    </footer>
+
+                    {/* 右下角懸浮刷新按鈕 */}
+                    <div className="fixed bottom-8 right-8">
+                        <button 
+                            onClick={generateData}
+                            className="w-14 h-14 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform"
+                        >
+                            <svg className={`w-6 h-6 text-slate-800 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h5M20 20v-5h-5M15.13 7.13a7.5 7.5 0 00-10.83 2.13M8.87 16.87a7.5 7.5 0 0010.83-2.13" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
